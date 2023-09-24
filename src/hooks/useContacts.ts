@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
-const baseURL = 'https://contact.mediusware.com/api';
+export const baseURL = 'https://contact.mediusware.com/api';
 
 export default function useContacts() {
   return useQuery({

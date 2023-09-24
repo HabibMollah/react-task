@@ -1,12 +1,61 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
-import useContacts from '../hooks/useContacts';
+import useContacts, { baseURL } from '../hooks/useContacts';
+import { useInView } from 'react-intersection-observer';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import axios from 'axios';
 
 const Problem2 = () => {
   const [showA, setShowA] = useState(false);
   const [showB, setShowB] = useState(false);
-  const { data, isLoading } = useContacts();
+  const { ref, inView } = useInView();
+  const [page, setPage] = useState(1);
+  const [allContacts, setAllContacts] = useState<any>([]);
+
+  // const { data, isLoading } = useContacts();
+
+  const {
+    status,
+    data,
+    error,
+    isFetching,
+    isFetchingNextPage,
+    isFetchingPreviousPage,
+    fetchNextPage,
+    fetchPreviousPage,
+    hasNextPage,
+    hasPreviousPage,
+    isLoading,
+  } = useInfiniteQuery(
+    ['contacts'],
+    async () => {
+      const res = await axios.get(`${baseURL}/contacts/`, {
+        params: {
+          page: page,
+        },
+      });
+
+      return res.data;
+    },
+    {
+      getPreviousPageParam: (firstPage) => firstPage.previousId ?? undefined,
+      getNextPageParam: (lastPage) => lastPage.nextId ?? undefined,
+    }
+  );
+
+  useEffect(() => {
+    if (data) {
+      setAllContacts((prevContacts) => [...prevContacts, ...data.pages]);
+    }
+  }, [data]);
+
+  useEffect(() => {
+    if (inView) {
+      setPage(page + 1);
+      fetchNextPage();
+    }
+  }, [inView]);
 
   const handleCloseA = () => setShowA(false);
   const handleShowA = () => setShowA(true);
@@ -25,7 +74,8 @@ const Problem2 = () => {
 
   if (isLoading) return <Spinner />;
 
-  if (data) console.log(data);
+  if (allContacts) console.log(allContacts);
+
   return (
     <div className="container">
       <div className="row justify-content-center mt-5">
@@ -47,7 +97,42 @@ const Problem2 = () => {
             <Modal.Header closeButton>
               <Modal.Title>Modal A</Modal.Title>
             </Modal.Header>
-            <Modal.Body>Modal A</Modal.Body>
+            <Modal.Body>
+              {/* {data.pages.map((page, index) => (
+                  <React.Fragment key={index}>
+                    {page.results.map(
+                      (contact) => {
+                        console.log(contact);
+                        return <p>{contact.phone}</p>;
+                      }
+                      // (
+                      // <p
+                      //   style={{
+                      //     border: '1px solid gray',
+                      //     borderRadius: '5px',
+                      //     padding: '10rem 1rem',
+                      //     background: `hsla(${project.id * 30}, 60%, 80%, 1)`,
+                      //   }}
+                      //   key={project.id}>
+                      //   {project.name}
+                      // </p>
+                      // )
+                    )}
+                  </React.Fragment>
+                ))} */}
+              <div>
+                <button
+                  ref={ref}
+                  onClick={() => fetchNextPage()}
+                  disabled={!hasNextPage || isFetchingNextPage}>
+                  {isFetchingNextPage
+                    ? 'Loading more...'
+                    : hasNextPage
+                    ? 'Load Newer'
+                    : 'Nothing more to load'}
+                </button>
+              </div>
+            </Modal.Body>
             <Modal.Footer className="my-custom-footer">
               <div className="gap-1 d-flex">
                 <input className="" type="checkbox" id="even-only" />
@@ -85,7 +170,21 @@ const Problem2 = () => {
             <Modal.Header closeButton>
               <Modal.Title>Modal B</Modal.Title>
             </Modal.Header>
-            <Modal.Body>Modal B</Modal.Body>
+            <Modal.Body>
+              Modal B{' '}
+              <div>
+                <button
+                  ref={ref}
+                  onClick={() => fetchNextPage()}
+                  disabled={!hasNextPage || isFetchingNextPage}>
+                  {isFetchingNextPage
+                    ? 'Loading more...'
+                    : hasNextPage
+                    ? 'Load Newer'
+                    : 'Nothing more to load'}
+                </button>
+              </div>
+            </Modal.Body>
             <Modal.Footer className="my-custom-footer">
               <div className="gap-1 d-flex">
                 <input className="" type="checkbox" id="even-only" />
